@@ -1,0 +1,15 @@
+{
+  "name": "taskflow-worker",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/worker.js",
+  "scripts": {
+    "dev": "node src/worker.js",
+    "start": "node src/worker.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "mongoose": "^8.7.0",
+    "redis": "^4.6.15"
+  }
+}
