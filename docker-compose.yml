@@ -1,14 +1,16 @@
+# TaskFlow — cinco servicios: frontend, backend, worker, mongoserver y redisserver.
+# Dentro de la red de Docker los servicios se hablan por NOMBRE DE SERVICIO y puerto interno
+# (mongoserver:27017, redisserver:6379), nunca por localhost.
 services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:4000/api}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL:-http://localhost:4000}
     container_name: taskflow-frontend
     ports:
-      - "5173:5173"
-    environment:
-      VITE_API_URL: http://localhost:4000/api
-      VITE_SOCKET_URL: http://localhost:4000
+      - "5173:80" # host:contenedor -> http://localhost:5173
     depends_on:
       backend:
         condition: service_healthy
@@ -18,78 +20,83 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
     container_name: taskflow-backend
+    restart: unless-stopped
     ports:
-      - "4000:4000"
+      - "4000:4000" # http://localhost:4000/api
     environment:
       PORT: 4000
-      FRONTEND_URL: http://localhost:5173
-      MONGO_URI: mongodb://mongo:27017/taskflow
-      REDIS_URL: redis://redis:6379
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173,http://127.0.0.1:5173}
+      MONGO_URI: mongodb://mongoserver:27017/taskflow
+      REDIS_URL: redis://redisserver:6379
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-30}
       NODE_ENV: production
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 6
       start_period: 10s
     depends_on:
-      mongo:
+      mongoserver:
         condition: service_healthy
-      redis:
+      redisserver:
         condition: service_healthy
     networks:
       - taskflow-net
 
+  # El Worker es independiente del backend: solo necesita MongoDB y Redis.
   worker:
     build:
       context: ./worker
-      dockerfile: Dockerfile
     container_name: taskflow-worker
+    restart: unless-stopped
     environment:
-      WORKER_REDIS_URL: redis://redis:6379
-      WORKER_MONGO_URI: mongodb://mongo:27017/taskflow
+      WORKER_MONGO_URI: mongodb://mongoserver:27017/taskflow
+      WORKER_REDIS_URL: redis://redisserver:6379
+      WORKER_PROCESSING_DELAY_MS: ${WORKER_PROCESSING_DELAY_MS:-2000}
     depends_on:
-      mongo:
+      mongoserver:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-      backend:
+      redisserver:
         condition: service_healthy
     networks:
       - taskflow-net
 
-  mongo:
+  mongoserver:
     image: mongo:7
     container_name: taskflow-mongo
     ports:
       - "27017:27017"
     volumes:
-      - mongo-data:/data/db
-    networks:
-      - taskflow-net
+      - mongo-data:/data/db # persistencia (HU-10)
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 10s
       timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: taskflow-redis
-    ports:
-      - "6379:6379"
+      retries: 6
     networks:
       - taskflow-net
+
+  redisserver:
+    image: redis:7-alpine
+    container_name: taskflow-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 6
+    networks:
+      - taskflow-net
 
 volumes:
   mongo-data:
+  redis-data:
 
 networks:
   taskflow-net:

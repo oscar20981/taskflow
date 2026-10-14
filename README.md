@@ -1,108 +1,74 @@
 # TaskFlow
 
-Proyecto Full Stack para la gestión de solicitudes con Vue 3, Express, MongoDB, Redis, Worker y Docker Compose.
+Sistema distribuido para registrar solicitudes y procesarlas de forma asíncrona. El usuario crea una solicitud en la interfaz Vue; el backend la guarda en MongoDB y la envía a una cola en Redis; un Worker independiente la procesa, genera una respuesta automática según su categoría y el resultado se refleja **en tiempo real** (Socket.IO) en la interfaz.
 
-## Requisitos
+```
+Vue 3 ──► Express API ──► MongoDB (PENDIENTE → EN_COLA)
+              │  └──────► Redis queue ──► Worker ──► MongoDB (PROCESANDO → RESPONDIDA | ERROR)
+              ◄── Redis pub/sub ◄─────────────┘
+              └─ Socket.IO ──► Vue (Dashboard, Listado, Detalle, Monitor)
+```
 
-- Docker Desktop
-- Docker Compose
-- Node.js 18+
+## Integrantes
 
-## Inicio rápido con Docker
+| Nombre | Rol | Usuario de GitHub |
+|---|---|---|
+| _Aprendiz 1_ | _completar_ | _completar_ |
+| _Aprendiz 2_ | _completar_ | _completar_ |
 
-1. Copia el archivo `.env.example` a `.env`
-2. Ejecuta:
+## Tecnologías
+
+Vue 3 + Vite · Node.js + Express + Mongoose · MongoDB 7 · Redis 7 · Socket.IO · Docker Compose · nginx (frontend).
+
+## Ejecución
+
+Requisitos: Docker y Docker Compose.
 
 ```bash
-docker compose up --build
+cp .env.example .env        # opcional: todas las variables tienen valor por defecto
+docker compose up -d --build
 ```
 
-Para ejecutar en segundo plano:
+| Servicio | Contenedor | URL / puerto |
+|---|---|---|
+| Frontend | `frontend` | http://localhost:5173 |
+| Backend (API) | `backend` | http://localhost:4000/api |
+| Worker | `worker` | — |
+| MongoDB | `mongoserver` | `mongoserver:27017` (interno) / `localhost:27017` |
+| Redis | `redisserver` | `redisserver:6379` (interno) / `localhost:6379` |
 
-```bash
-docker compose up --build -d
-docker compose ps
-docker compose logs -f backend worker
-```
-
-Para detener los servicios:
-
-```bash
-docker compose down
-```
-
-Para eliminar también los datos locales de MongoDB:
-
-```bash
-docker compose down -v
-```
-
-La aplicación queda disponible en:
-
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:4000/api
-- MongoDB: mongodb://localhost:27017
-- Redis: redis://localhost:6379
-
-## Estructura
-
-```text
-.
-├── frontend/
-├── backend/
-├── worker/
-├── docker-compose.yml
-├── .env.example
-├── README.md
-└── .gitignore
-```
+Detener: `docker compose down` (conserva los datos) · Borrar datos: `docker compose down -v`.
+Logs: `docker compose logs -f backend worker`.
 
 ## Funcionalidades
 
-- Registro de solicitudes
-- Listado y detalle
-- Estados: PENDIENTE, EN_COLA, PROCESANDO, RESPONDIDA, ERROR
-- Cola Redis y worker asíncrono
-- Socket.IO para actualizaciones en tiempo real
-- Dockerizados
+- Registro de solicitudes con validación (cliente y servidor), listado con filtros y búsqueda, detalle con panel de respuesta.
+- Cola en Redis + Worker independiente con 5 reglas por categoría (Información, Soporte, Documento, Consulta, Actualización) y respuesta genérica para el resto (“Otra”).
+- Caché de consultas en Redis con `CACHE MISS` / `CACHE HIT` (cabecera `X-Cache`, visible en el Listado y en los logs del backend).
+- Monitor de Express, MongoDB, Redis y Worker, con cola y eventos en vivo.
+- Persistencia en volúmenes de Docker; recuperación de solicitudes pendientes al reiniciar el Worker.
+- Errores controlados: escribir `[error]` en el título o la descripción lleva la solicitud a estado `ERROR` con su `mensajeError`.
+- Sin MongoDB o Redis la API responde 503: no existe respaldo en memoria que pueda perder datos.
 
-## Salud y operación
+## Estructura
 
-El endpoint `GET /api/health` informa el estado de MongoDB, Redis, la cola y las métricas. Devuelve HTTP 200 cuando las dependencias están disponibles y HTTP 503 cuando el backend está degradado.
-
-El worker procesa solicitudes desde Redis y actualiza MongoDB con los estados `PROCESANDO`, `RESPONDIDA` o `ERROR`. El frontend refresca las métricas y solicitudes mediante Socket.IO y consultas periódicas.
-
-Para ejecutar las pruebas de integración con Docker levantado:
-
-```bash
-cd backend
-npm test
+```
+backend/src   config · models · services · controllers · routes · middlewares · sockets · utils
+worker/src    config · models · rules (respuestas, procesador) · worker.js
+frontend/src  views · components · layouts · router · services · store · composables · plugins · utils · styles
+tests/        pruebas de integración        docs/   API, pantallas, pruebas, GitHub, arquitectura
+scripts/      pruebas manuales y creación de Issues
 ```
 
-En producción se debe restringir `FRONTEND_URL`, proteger MongoDB y Redis con credenciales y no publicar sus puertos directamente a Internet.
-
-## Scripts del proyecto
-
-### Frontend
+## Pruebas
 
 ```bash
-cd frontend
-npm install
-npm run dev
+cd backend && npm test                   # unidad + API sin dependencias
+cd worker  && npm test                   # reglas de respuesta y error simulado
+cd backend && npm run test:integration   # flujo completo (con docker compose arriba)
+node scripts/pruebas-manuales.mjs cola | recuperacion | cache | error | persistencia
 ```
 
-### Backend
+## Documentación
 
-```bash
-cd backend
-npm install
-npm run dev
-```
-
-### Worker
-
-```bash
-cd worker
-npm install
-npm run dev
-```
+[Arquitectura](docs/ARQUITECTURA_TASKFLOW.md) · [Diseño de la API](docs/API.md) · [Prototipo de pantallas](docs/PANTALLAS.md) · [Documento de pruebas](docs/PRUEBAS.md) · [Flujo de GitHub](docs/GITHUB.md)

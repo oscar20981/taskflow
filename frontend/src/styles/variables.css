@@ -1,0 +1,57 @@
+/* =========================================================
+   TaskFlow — variables de diseño (tokens)
+   ========================================================= */
+
+:root {
+  /* Color base */
+  --ink: #12172b;
+  --ink-soft: #4b5169;
+  --ink-faint: #8991a8;
+  --canvas: #eef1f8;
+  --surface: #ffffff;
+  --border: #dce1ee;
+  --border-strong: #c3cade;
+
+  /* Marca */
+  --flow: #3450ff;
+  --flow-dark: #263bcc;
+  --flow-soft: #e7ebff;
+  --signal: #f5a524;
+  --signal-soft: #fff2dc;
+
+  /* Estados de la solicitud: amarillo, azul, morado, verde y rojo (colores sugeridos en el taller) */
+  --st-pendiente: #e0a800;
+  --st-pendiente-soft: #fff6d6;
+  --st-pendiente-ink: #8a6400;
+  --st-en_cola: #3450ff;
+  --st-en_cola-soft: #e7ebff;
+  --st-procesando: #7c4dff;
+  --st-procesando-soft: #efe9ff;
+  --st-procesando-ink: #5a2fd6;
+  --st-respondida: #17a673;
+  --st-respondida-soft: #e3f7ef;
+  --st-error: #e5484d;
+  --st-error-soft: #fce4e4;
+
+  /* Tipografía */
+  --font-ui: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Radios y sombras */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 2px rgba(18, 23, 43, 0.06);
+  --shadow-md: 0 12px 28px rgba(18, 23, 43, 0.10);
+
+  font-family: var(--font-ui);
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--ink);
+  background: var(--canvas);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+

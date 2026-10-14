@@ -1,17 +1,20 @@
-import axios from 'axios'
+import api from '../plugins/axios'
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
-  timeout: 10000,
-})
+// Toda la comunicación con Express se centraliza aquí (regla de arquitectura n.º 12).
 
-export const getRequests = async () => {
-  const { data } = await api.get('/solicitudes')
-  return data.data || []
+export const getRequests = async (params = {}) => {
+  const clean = Object.fromEntries(Object.entries(params).filter(([, value]) => value !== '' && value != null))
+  const { data } = await api.get('/solicitudes', { params: clean })
+  return { items: data.data || [], cache: data.meta?.cache || '' }
 }
 
 export const getRequestById = async (id) => {
   const { data } = await api.get(`/solicitudes/${id}`)
+  return data.data
+}
+
+export const getRequestResponse = async (id) => {
+  const { data } = await api.get(`/solicitudes/${id}/respuesta`)
   return data.data
 }
 
@@ -20,12 +23,12 @@ export const createRequest = async (payload) => {
   return data
 }
 
-export const getMonitoring = async () => {
-  const { data } = await api.get('/monitor')
+export const getStats = async () => {
+  const { data } = await api.get('/estadisticas')
   return data.data
 }
 
-export const getHealth = async () => {
-  const { data } = await api.get('/health')
-  return data
+export const getMonitor = async () => {
+  const { data } = await api.get('/monitor')
+  return data.data
 }
